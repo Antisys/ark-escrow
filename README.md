@@ -10,10 +10,18 @@
 - [x] 2-party payment flow tested (send/receive VTXOs)
 - [x] VTXO structure documented
 
-**Phase 2: Escrow Design** — in progress
-- [ ] 3-party VTXO flow architecture
-- [ ] Custom tapscript leaves for escrow conditions
-- [ ] Escrow agent key management
+**Phase 2: Escrow Agent** — completed
+- [x] 3-party VTXO flow architecture (2-of-3 multisig + buyer timeout)
+- [x] Escrow script builder (4-leaf tapscript, 7 unit tests)
+- [x] Per-deal keypair generation with AES-256-GCM encryption
+- [x] REST API (create deal, fund, release, refund)
+- [x] SQLite persistence
+- [x] Docker deployment on regtest
+
+**Phase 3: Embedded Wallet + Lightning** — planned
+- [ ] Embed Arkade SDK in escrow frontend (invisible wallet)
+- [ ] Boltz swap integration for LN onramp/offramp
+- [ ] Users interact only with Lightning — Ark is hidden
 
 ## Documentation
 
@@ -21,6 +29,8 @@
 - [Deployment Guide](docs/02-deployment-guide.md)
 - [Payment Flow & VTXO Structure](docs/03-payment-flow.md)
 - [Known Issues & Workarounds](docs/04-known-issues.md)
+- [Escrow Architecture](docs/05-escrow-architecture.md)
+- [Lightning Integration & Custody Analysis](docs/06-lightning-integration.md)
 
 ## Infrastructure
 
