@@ -1,0 +1,25 @@
+services:
+  escrow-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: escrow-agent
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    environment:
+      - ESCROW_PORT=9090
+      - ESCROW_DB_PATH=/app/data/escrow.db
+      - ESCROW_ARKD_URL=http://arkd:7070
+      - ESCROW_MASTER_KEY=${ESCROW_MASTER_KEY}
+    volumes:
+      - escrow-data:/app/data
+
+volumes:
+  escrow-data:
+    name: escrow-data
+
+networks:
+  default:
+    name: nigiri
+    external: true
