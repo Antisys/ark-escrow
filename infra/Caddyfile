@@ -1,0 +1,26 @@
+# Caddy reverse proxy for arkd + Arkade Wallet UI
+# Serves everything over HTTPS on the same origin to avoid mixed content issues.
+
+:443 {
+    tls /certs/cert.pem /certs/key.pem
+
+    # arkd gRPC-gateway REST API
+    handle /v1/* {
+        reverse_proxy arkd:7070 {
+            flush_interval -1
+        }
+    }
+
+    # Esplora API (via address-converting proxy)
+    handle /esplora/* {
+        uri strip_prefix /esplora
+        reverse_proxy esplora-proxy:3001
+    }
+
+    # Arkade Wallet static files (SPA)
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}
