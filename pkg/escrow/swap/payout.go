@@ -8,8 +8,7 @@ import (
 
 // PayoutConfig holds the configuration for an atomic payout (escrow VTXO → LN).
 type PayoutConfig struct {
-	LND       *LNDClient
-	Elementsd *ElementsdClient
+	LND *LNDClient
 
 	// The LN invoice to pay the claimant (amount is encoded in the invoice)
 	PaymentRequest string

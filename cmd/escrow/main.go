@@ -31,8 +31,7 @@ func main() {
 			},
 			&cli.StringFlag{
 				Name:    "elementsd-url",
-				Usage:   "elementsd RPC URL (e.g., http://admin1:123@localhost:18884)",
-				Value:   "http://admin1:123@localhost:18884",
+				Usage:   "elementsd RPC URL (e.g., http://user:pass@localhost:18884)",
 				EnvVars: []string{"ESCROW_ELEMENTSD_URL"},
 			},
 			&cli.StringFlag{

@@ -28,7 +28,9 @@ func NewLNDClient(baseURL, macaroonHex string) *LNDClient {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				// TODO: accept TLS cert path for production use.
+				// LND uses self-signed certs, so we skip verification for regtest.
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
 			},
 		},
 	}

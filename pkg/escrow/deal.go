@@ -1,7 +1,6 @@
 package escrow
 
 import (
-	"github.com/Antisys/ark-escrow/internal/script"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -9,6 +8,8 @@ import (
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
+
+	"github.com/Antisys/ark-escrow/internal/script"
 )
 
 type DealState string

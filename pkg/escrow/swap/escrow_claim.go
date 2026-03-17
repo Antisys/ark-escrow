@@ -1,15 +1,16 @@
 package swap
 
 import (
-	"github.com/Antisys/ark-escrow/internal/script"
 	"context"
 	"fmt"
 
-	"github.com/Antisys/ark-escrow/pkg/escrow"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	elementsNetwork "github.com/vulpemventures/go-elements/network"
 	"github.com/vulpemventures/go-elements/psetv2"
+
+	"github.com/Antisys/ark-escrow/internal/script"
+	"github.com/Antisys/ark-escrow/pkg/escrow"
 )
 
 type EscrowLeaf int
@@ -61,7 +62,7 @@ func ClaimEscrow(ctx context.Context, elementsd *ElementsdClient, cfg ClaimEscro
 		return nil, fmt.Errorf("invalid leaf index %d", leafIndex)
 	}
 
-	if cfg.Amount <= cfg.Fee || cfg.Amount-cfg.Fee <= 546 {
+	if cfg.Amount <= cfg.Fee || cfg.Amount-cfg.Fee <= dustLimit {
 		return nil, fmt.Errorf("output amount %d below dust after fee %d", cfg.Amount-cfg.Fee, cfg.Fee)
 	}
 

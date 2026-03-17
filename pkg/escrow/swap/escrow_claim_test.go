@@ -1,14 +1,15 @@
 package swap
 
 import (
-	"github.com/Antisys/ark-escrow/internal/script"
 	"encoding/hex"
 	"testing"
 
-	"github.com/Antisys/ark-escrow/pkg/escrow"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Antisys/ark-escrow/internal/script"
+	"github.com/Antisys/ark-escrow/pkg/escrow"
 )
 
 func newTestEscrowScript(t *testing.T) (*escrow.EscrowScript, *btcec.PrivateKey, *btcec.PrivateKey, *btcec.PrivateKey, [escrow.SecretSize]byte) {

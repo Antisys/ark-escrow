@@ -63,7 +63,10 @@ func createAction(c *cli.Context) error {
 	}
 
 	token := deal.JoinToken()
-	tokenJSON, _ := json.Marshal(token)
+	tokenJSON, err := json.Marshal(token)
+	if err != nil {
+		return fmt.Errorf("failed to marshal join token: %w", err)
+	}
 
 	fmt.Printf("Deal created: %s\n", deal.ID)
 	fmt.Printf("Seller pubkey: %s\n", sellerPubKey)

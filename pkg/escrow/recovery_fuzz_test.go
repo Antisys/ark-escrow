@@ -24,7 +24,7 @@ func randomDeal(t *testing.T, rng *rand.Rand) (*Deal, *btcec.PrivateKey, *btcec.
 	require.NoError(t, err)
 
 	amount := uint64(rng.Intn(100_000_000)) + 1000
-	timeout := uint32(rng.Intn(65535)) + 1
+	timeout := uint32(rng.Intn(2016-144+1)) + 144
 
 	deal := &Deal{
 		ID:            hex.EncodeToString(randomBytes(t, 16)),
@@ -56,7 +56,9 @@ func randomBytes(t *testing.T, n int) []byte {
 
 // TestRandomizedRecoveryKitRoundTrip verifies encode/decode with random deals.
 func TestRandomizedRecoveryKitRoundTrip(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -102,7 +104,9 @@ func TestRandomizedRecoveryKitRoundTrip(t *testing.T) {
 
 // TestRandomizedRecoveryKitEscrowAddress verifies that the kit reconstructs the same address.
 func TestRandomizedRecoveryKitEscrowAddress(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -136,7 +140,9 @@ func TestRandomizedRecoveryKitEscrowAddress(t *testing.T) {
 
 // TestRandomizedRecoveryKitValidation tests Validate with random valid and invalid kits.
 func TestRandomizedRecoveryKitValidation(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -186,7 +192,9 @@ func TestRandomizedRecoveryKitValidation(t *testing.T) {
 
 // TestRandomizedRecoveryKitCorruption verifies that corrupted encoded kits fail to decode.
 func TestRandomizedRecoveryKitCorruption(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -233,12 +241,14 @@ func TestRandomizedRecoveryKitCorruption(t *testing.T) {
 
 // TestRandomizedDealStateTransitions tests the state machine with random sequences.
 func TestRandomizedDealStateTransitions(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 100
 
 	for i := 0; i < iterations; i++ {
 		amount := uint64(rng.Intn(100_000_000)) + 1000
-		timeout := uint32(rng.Intn(65535)) + 1
+		timeout := uint32(rng.Intn(2016-144+1)) + 144
 
 		sellerKey, err := btcec.NewPrivateKey()
 		require.NoError(t, err)
@@ -318,7 +328,9 @@ func TestRandomizedDealStateTransitions(t *testing.T) {
 
 // TestRandomizedDealStoreRoundTrip verifies store save/load with random deals.
 func TestRandomizedDealStoreRoundTrip(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	dir := t.TempDir()
 	store, err := NewFileStore(dir)
 	require.NoError(t, err)

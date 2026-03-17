@@ -77,7 +77,9 @@ func TestFileStorePermissions(t *testing.T) {
 	deal := newTestDeal(t)
 	require.NoError(t, store.Save(deal))
 
-	info, err := os.Stat(store.path(deal.ID))
+	p, err := store.path(deal.ID)
+	require.NoError(t, err)
+	info, err := os.Stat(p)
 	require.NoError(t, err)
 	// File should be owner-only readable (0600)
 	require.Equal(t, os.FileMode(0600), info.Mode().Perm())

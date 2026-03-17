@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Store is the persistence interface for deals.
@@ -27,17 +28,24 @@ func NewFileStore(dir string) (*FileStore, error) {
 	return &FileStore{dir: dir}, nil
 }
 
-func (s *FileStore) path(id string) string {
-	return filepath.Join(s.dir, id+".json")
+func (s *FileStore) path(id string) (string, error) {
+	if id == "" || strings.ContainsAny(id, "/\\..") {
+		return "", fmt.Errorf("invalid deal ID: %q", id)
+	}
+	return filepath.Join(s.dir, id+".json"), nil
 }
 
 // Save writes a deal to disk as JSON.
 func (s *FileStore) Save(deal *Deal) error {
+	p, err := s.path(deal.ID)
+	if err != nil {
+		return err
+	}
 	data, err := json.MarshalIndent(deal, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal deal: %w", err)
 	}
-	if err := os.WriteFile(s.path(deal.ID), data, 0600); err != nil {
+	if err := os.WriteFile(p, data, 0600); err != nil {
 		return fmt.Errorf("failed to write deal file: %w", err)
 	}
 	return nil
@@ -45,7 +53,11 @@ func (s *FileStore) Save(deal *Deal) error {
 
 // Load reads a deal from disk by ID.
 func (s *FileStore) Load(id string) (*Deal, error) {
-	data, err := os.ReadFile(s.path(id))
+	p, err := s.path(id)
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(p)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("deal %s not found", id)

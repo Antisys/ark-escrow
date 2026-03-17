@@ -127,9 +127,14 @@ func fundWithHTLC(ctx context.Context, cfg FundConfig, preimage []byte, hash [32
 		return nil, fmt.Errorf("failed to create Liquid HTLC: %w", err)
 	}
 
-	// Mine a block to confirm the HTLC
-	addr, _ := cfg.Elementsd.GetNewAddress(ctx)
-	_, _ = cfg.Elementsd.GenerateToAddress(ctx, 1, addr)
+	// Mine a block to confirm the HTLC (regtest only — on mainnet Liquid, blocks come every ~1min)
+	addr, err := cfg.Elementsd.GetNewAddress(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("HTLC funded (tx %s) but failed to get mining address: %w", htlcResult.TxID, err)
+	}
+	if _, err := cfg.Elementsd.GenerateToAddress(ctx, 1, addr); err != nil {
+		return nil, fmt.Errorf("HTLC funded (tx %s) but failed to mine confirmation block: %w", htlcResult.TxID, err)
+	}
 
 	// Step 3: Create HODL invoice on LND
 	memo := fmt.Sprintf("escrow-fund-%s", hex.EncodeToString(hash[:8]))
@@ -185,7 +190,9 @@ func ClaimHTLCToEscrow(
 	return txid, nil
 }
 
-// fundDirect implements the simplified flow: send L-BTC directly to escrow address.
+// fundDirect implements the simplified regtest flow: send L-BTC directly to escrow address.
+// WARNING: This is NOT atomic — the service fronts L-BTC before the buyer pays the LN invoice.
+// Use fundWithHTLC for production (requires ServicePubKey and ServicePrivKey).
 func fundDirect(ctx context.Context, cfg FundConfig, preimage []byte, hash [32]byte) (*FundResult, error) {
 	// Step 2: Send L-BTC directly to escrow address
 	fundTxID, err := cfg.Elementsd.SendToAddress(ctx, cfg.EscrowAddress, cfg.AmountSats)

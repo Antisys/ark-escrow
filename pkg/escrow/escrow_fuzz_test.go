@@ -46,7 +46,9 @@ func randomEscrowParams(t *testing.T, rng *rand.Rand) (EscrowParams, [SecretSize
 
 // TestRandomizedScriptTreeProperties runs property checks over many random key/secret/timeout combos.
 func TestRandomizedScriptTreeProperties(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 100
 
 	for i := 0; i < iterations; i++ {
@@ -98,7 +100,9 @@ func TestRandomizedScriptTreeProperties(t *testing.T) {
 
 // TestRandomizedDeterminism verifies that the same params always produce the same tree/address.
 func TestRandomizedDeterminism(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -126,7 +130,9 @@ func TestRandomizedDeterminism(t *testing.T) {
 
 // TestRandomizedKeyUniqueness verifies that different key sets produce different addresses.
 func TestRandomizedKeyUniqueness(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 	addresses := make(map[string]int)
 
@@ -147,7 +153,9 @@ func TestRandomizedKeyUniqueness(t *testing.T) {
 
 // TestRandomizedLeafKeyPlacement verifies the correct keys land in the correct leaves.
 func TestRandomizedLeafKeyPlacement(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -185,7 +193,9 @@ func TestRandomizedLeafKeyPlacement(t *testing.T) {
 
 // TestRandomizedReleaseCondition verifies the SHA256 preimage condition with random secrets.
 func TestRandomizedReleaseCondition(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -199,8 +209,7 @@ func TestRandomizedReleaseCondition(t *testing.T) {
 
 		// The release closure's condition must embed the correct hash
 		release := es.ReleaseClosure()
-		condScript, err := release.Condition, error(nil)
-		require.NoError(t, err)
+		condScript := release.Condition
 		require.NotEmpty(t, condScript, "iteration %d", i)
 
 		// Verify the hash bytes are embedded in the condition script
@@ -218,7 +227,9 @@ func TestRandomizedReleaseCondition(t *testing.T) {
 
 // TestRandomizedEncodeDecodeRoundTrip verifies encode/decode with random closures.
 func TestRandomizedEncodeDecodeRoundTrip(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -244,7 +255,9 @@ func TestRandomizedEncodeDecodeRoundTrip(t *testing.T) {
 
 // TestRandomizedLeafScriptsAndControlBlocks verifies ElementsLeafScript with random params.
 func TestRandomizedLeafScriptsAndControlBlocks(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -274,7 +287,9 @@ func TestRandomizedLeafScriptsAndControlBlocks(t *testing.T) {
 
 // TestRandomizedNetworkHRP verifies address encoding with different network prefixes.
 func TestRandomizedNetworkHRP(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	hrps := []string{"ert", "ex", "tb", "bc"}
 
 	for _, hrp := range hrps {
@@ -290,7 +305,9 @@ func TestRandomizedNetworkHRP(t *testing.T) {
 
 // TestRandomizedBech32mChecksumValidation verifies that corrupted addresses are rejected.
 func TestRandomizedBech32mChecksumValidation(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {

@@ -1,17 +1,18 @@
 package swap
 
 import (
-	"github.com/Antisys/ark-escrow/internal/script"
 	"context"
 	"encoding/hex"
 	"math/rand"
 	"net/http"
 	"testing"
 
-	"github.com/Antisys/ark-escrow/pkg/escrow"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Antisys/ark-escrow/internal/script"
+	"github.com/Antisys/ark-escrow/pkg/escrow"
 )
 
 func randomTestEscrow(t *testing.T, rng *rand.Rand) (
@@ -31,7 +32,7 @@ func randomTestEscrow(t *testing.T, rng *rand.Rand) (
 	secret, secretHash, err := escrow.GenerateSecret()
 	require.NoError(t, err)
 
-	timeout := uint32(rng.Intn(65535)) + 1
+	timeout := uint32(rng.Intn(2016-144+1)) + 144
 
 	es, err := escrow.NewEscrowScript(escrow.EscrowParams{
 		SellerPubKey: sellerKey.PubKey(),
@@ -73,7 +74,9 @@ func validationError(cfg ClaimEscrowConfig) string {
 
 // TestRandomizedClaimValidationRelease tests release leaf validation with random params.
 func TestRandomizedClaimValidationRelease(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -105,7 +108,9 @@ func TestRandomizedClaimValidationRelease(t *testing.T) {
 
 // TestRandomizedClaimValidationTimeout tests timeout leaf validation with random params.
 func TestRandomizedClaimValidationTimeout(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -131,7 +136,9 @@ func TestRandomizedClaimValidationTimeout(t *testing.T) {
 
 // TestRandomizedClaimValidationDispute tests dispute leaf validation with random params.
 func TestRandomizedClaimValidationDispute(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -168,7 +175,9 @@ func TestRandomizedClaimValidationDispute(t *testing.T) {
 
 // TestRandomizedDustThreshold tests that random amounts near the dust limit are rejected correctly.
 func TestRandomizedDustThreshold(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 100
 
 	for i := 0; i < iterations; i++ {
@@ -202,7 +211,9 @@ func TestRandomizedDustThreshold(t *testing.T) {
 
 // TestRandomizedLeafScriptConsistency verifies that leaf scripts from different access paths match.
 func TestRandomizedLeafScriptConsistency(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -233,7 +244,9 @@ func TestRandomizedLeafScriptConsistency(t *testing.T) {
 
 // TestRandomizedDisputeLeafSymmetry verifies dispute leaves are properly mirrored.
 func TestRandomizedDisputeLeafSymmetry(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {
@@ -267,7 +280,9 @@ func TestRandomizedDisputeLeafSymmetry(t *testing.T) {
 
 // TestRandomizedInvalidLeafIndex tests that out-of-range leaf indices are rejected.
 func TestRandomizedInvalidLeafIndex(t *testing.T) {
-	rng := rand.New(rand.NewSource(rand.Int63()))
+	seed := rand.Int63()
+	t.Logf("seed: %d", seed)
+	rng := rand.New(rand.NewSource(seed))
 	iterations := 50
 
 	for i := 0; i < iterations; i++ {

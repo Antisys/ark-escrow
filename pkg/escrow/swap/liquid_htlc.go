@@ -16,6 +16,9 @@ import (
 const (
 	HTLCDefaultTimeout = 10
 	HTLCEstimatedFee   = uint64(500)
+	// dustLimit is the minimum output value in satoshis. Outputs below this
+	// are rejected by Elements/Liquid nodes as non-standard ("dust").
+	dustLimit = uint64(546)
 )
 
 // HTLCScript represents a Liquid HTLC as a 2-leaf taproot output.
@@ -192,7 +195,7 @@ func SpendHTLC(ctx context.Context, elementsd *ElementsdClient, cfg SpendHTLCCon
 	}
 
 	outputAmount := cfg.Amount - cfg.Fee
-	if outputAmount <= 546 {
+	if outputAmount <= dustLimit {
 		return "", fmt.Errorf("output amount %d below dust after fee %d", outputAmount, cfg.Fee)
 	}
 
