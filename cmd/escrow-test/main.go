@@ -55,6 +55,7 @@ type testState struct {
 	fundResult   *swap.FundResult
 	escrowAddr   string
 	escrowScript *escrow.EscrowScript
+	escrowAmount     uint64 // actual amount in escrow VTXO (deal.Amount minus HTLC fee)
 	recoveryKit      string // encoded recovery kit
 	recoveryDest     string // destination address for recovery
 	recoverySecret   string // buyer's secret (hex), preserved for seller recovery
@@ -214,11 +215,12 @@ func main() {
 	fmt.Println()
 
 	state2 := &testState{
-		lnd:       state.lnd,
-		cln:       state.cln,
-		elementsd: state.elementsd,
-		store:     state.store,
-		oracleKey: state.oracleKey,
+		lnd:        state.lnd,
+		cln:        state.cln,
+		elementsd:  state.elementsd,
+		store:      state.store,
+		oracleKey:  state.oracleKey,
+		serviceKey: state.serviceKey,
 	}
 
 	refundSteps := []step{
@@ -303,11 +305,12 @@ func main() {
 	fmt.Println()
 
 	state3 := &testState{
-		lnd:       state.lnd,
-		cln:       state.cln,
-		elementsd: state.elementsd,
-		store:     state.store,
-		oracleKey: state.oracleKey,
+		lnd:        state.lnd,
+		cln:        state.cln,
+		elementsd:  state.elementsd,
+		store:      state.store,
+		oracleKey:  state.oracleKey,
+		serviceKey: state.serviceKey,
 	}
 
 	securitySteps := []step{
@@ -398,11 +401,12 @@ func main() {
 	fmt.Println()
 
 	stateSellerRecovery := &testState{
-		lnd:       state.lnd,
-		cln:       state.cln,
-		elementsd: state.elementsd,
-		store:     state.store,
-		oracleKey: state.oracleKey,
+		lnd:        state.lnd,
+		cln:        state.cln,
+		elementsd:  state.elementsd,
+		store:      state.store,
+		oracleKey:  state.oracleKey,
+		serviceKey: state.serviceKey,
 	}
 
 	sellerRecoverySteps := []step{
@@ -482,11 +486,12 @@ func main() {
 
 	// --- Dispute → Seller ---
 	state4 := &testState{
-		lnd:       state.lnd,
-		cln:       state.cln,
-		elementsd: state.elementsd,
-		store:     state.store,
-		oracleKey: state.oracleKey,
+		lnd:        state.lnd,
+		cln:        state.cln,
+		elementsd:  state.elementsd,
+		store:      state.store,
+		oracleKey:  state.oracleKey,
+		serviceKey: state.serviceKey,
 	}
 
 	disputeSellerSteps := []step{
@@ -546,11 +551,12 @@ func main() {
 	fmt.Println()
 
 	state5 := &testState{
-		lnd:       state.lnd,
-		cln:       state.cln,
-		elementsd: state.elementsd,
-		store:     state.store,
-		oracleKey: state.oracleKey,
+		lnd:        state.lnd,
+		cln:        state.cln,
+		elementsd:  state.elementsd,
+		store:      state.store,
+		oracleKey:  state.oracleKey,
+		serviceKey: state.serviceKey,
 	}
 
 	disputeBuyerSteps := []step{
@@ -835,11 +841,14 @@ func stepBuyerFund(ctx context.Context, state *testState) error {
 	if err != nil {
 		return fmt.Errorf("escrow funded (tx %s) but could not find vout: %w", escrowTxID, err)
 	}
+	// The escrow VTXO holds deal.Amount minus HTLC claim fee
+	state.escrowAmount = state.deal.Amount - swap.HTLCEstimatedFee
 	if err := state.deal.Fund(escrowTxID, vout); err != nil {
 		return err
 	}
 
-	logf("Deal funded: txid=%s vout=%d", state.deal.FundTxID, state.deal.FundVout)
+	logf("Deal funded: txid=%s vout=%d (escrow amount: %d sats, HTLC fee: %d sats)",
+		state.deal.FundTxID, state.deal.FundVout, state.escrowAmount, swap.HTLCEstimatedFee)
 	logf("Deal state: %s → %s", escrow.DealStateJoined, state.deal.State)
 
 	return state.store.Save(state.deal)
@@ -888,7 +897,7 @@ func stepBuyerRelease(ctx context.Context, state *testState) error {
 		EscrowScript: state.escrowScript,
 		FundTxID:     state.deal.FundTxID,
 		FundVout:     state.deal.FundVout,
-		Amount:       state.deal.Amount,
+		Amount:       state.escrowAmount,
 		Leaf:         swap.EscrowLeafRelease,
 		SigningKeys:  []*btcec.PrivateKey{state.sellerKey},
 		Preimage:     state.secret[:],
@@ -1009,7 +1018,7 @@ func stepBuyerRefund(ctx context.Context, state *testState) error {
 		EscrowScript: state.escrowScript,
 		FundTxID:     state.deal.FundTxID,
 		FundVout:     state.deal.FundVout,
-		Amount:       state.deal.Amount,
+		Amount:       state.escrowAmount,
 		Leaf:         swap.EscrowLeafTimeout,
 		SigningKeys:  []*btcec.PrivateKey{state.buyerKey},
 		DestAddress:  destAddr,
@@ -1095,7 +1104,7 @@ func stepRejectEarlyRefund(ctx context.Context, state *testState) error {
 		EscrowScript: state.escrowScript,
 		FundTxID:     state.deal.FundTxID,
 		FundVout:     state.deal.FundVout,
-		Amount:       state.deal.Amount,
+		Amount:       state.escrowAmount,
 		Leaf:         swap.EscrowLeafTimeout,
 		SigningKeys:  []*btcec.PrivateKey{state.buyerKey},
 		DestAddress:  destAddr,
@@ -1117,6 +1126,7 @@ func stepExportRecoveryKit(ctx context.Context, state *testState) error {
 		return fmt.Errorf("failed to create recovery kit: %w", err)
 	}
 	kit.NetworkHRP = networkHRP
+	kit.Amount = state.escrowAmount // actual VTXO amount (deal amount minus HTLC fee)
 
 	// Validate
 	if err := kit.Validate(); err != nil {
@@ -1313,6 +1323,7 @@ func stepExportSellerRecoveryKit(ctx context.Context, state *testState) error {
 		return fmt.Errorf("failed to create seller recovery kit: %w", err)
 	}
 	kit.NetworkHRP = networkHRP
+	kit.Amount = state.escrowAmount // actual VTXO amount (deal amount minus HTLC fee)
 
 	if err := kit.Validate(); err != nil {
 		return fmt.Errorf("kit validation failed: %w", err)
@@ -1470,7 +1481,7 @@ func stepDisputeSeller(ctx context.Context, state *testState) error {
 		EscrowScript: state.escrowScript,
 		FundTxID:     state.deal.FundTxID,
 		FundVout:     state.deal.FundVout,
-		Amount:       state.deal.Amount,
+		Amount:       state.escrowAmount,
 		Leaf:         swap.EscrowLeafDisputeSeller,
 		SigningKeys:  []*btcec.PrivateKey{state.oracleKey, state.sellerKey},
 		DestAddress:  destAddr,
@@ -1526,7 +1537,7 @@ func stepDisputeBuyer(ctx context.Context, state *testState) error {
 		EscrowScript: state.escrowScript,
 		FundTxID:     state.deal.FundTxID,
 		FundVout:     state.deal.FundVout,
-		Amount:       state.deal.Amount,
+		Amount:       state.escrowAmount,
 		Leaf:         swap.EscrowLeafDisputeBuyer,
 		SigningKeys:  []*btcec.PrivateKey{state.oracleKey, state.buyerKey},
 		DestAddress:  destAddr,

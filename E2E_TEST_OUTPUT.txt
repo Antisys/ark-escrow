@@ -1,0 +1,197 @@
+go build -o escrow ./cmd/escrow
+./scripts/run-e2e.sh
+[0;32mNigiri regtest environment detected[0m
+  LND:       https://localhost:18080
+  elementsd: http://localhost:18884
+  CLN:       docker exec cln lightning-cli
+
+Building escrow-test...
+Running E2E tests...
+
+╔══════════════════════════════════════════════════════════════╗
+║        Liquid Ark Escrow — E2E Test (Release Path)         ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌─ [1/10] Initialize services
+└─ PASS [64ms]
+
+┌─ [2/10] Fund service wallet with L-BTC
+└─ PASS [55ms]
+
+┌─ [3/10] Seller creates deal (random amount)
+└─ PASS [0s]
+
+┌─ [4/10] Buyer joins deal
+└─ PASS [34ms]
+
+┌─ [5/10] Fund escrow via LN (CLN → HODL invoice)
+└─ PASS [1.082s]
+
+┌─ [6/10] Verify escrow VTXO on-chain
+└─ PASS [17ms]
+
+┌─ [7/10] Seller marks shipped
+└─ PASS [13ms]
+
+┌─ [8/10] Release: claim escrow VTXO + pay seller via LN
+└─ PASS [256ms]
+
+┌─ [9/10] Verify seller received LN payout
+└─ PASS [61ms]
+
+┌─ [10/10] Verify deal state is RELEASED
+└─ PASS [0s]
+
+
+RESULT: 10/10 passed ✓
+
+╔══════════════════════════════════════════════════════════════╗
+║         Liquid Ark Escrow — E2E Test (Refund Path)         ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌─ [1/8] Seller creates deal (random amount)
+└─ PASS [0s]
+
+┌─ [2/8] Buyer joins deal
+└─ PASS [1ms]
+
+┌─ [3/8] Fund escrow via LN (CLN → HODL invoice)
+└─ PASS [1.099s]
+
+┌─ [4/8] Verify escrow VTXO on-chain
+└─ PASS [14ms]
+
+┌─ [5/8] Mine blocks past CSV timeout
+└─ PASS [58ms]
+
+┌─ [6/8] Refund: claim escrow VTXO + pay buyer via LN
+└─ PASS [288ms]
+
+┌─ [7/8] Verify buyer received LN refund
+└─ PASS [54ms]
+
+┌─ [8/8] Verify deal state is REFUNDED
+└─ PASS [0s]
+
+
+RESULT: 8/8 passed ✓
+
+╔══════════════════════════════════════════════════════════════╗
+║    Liquid Ark Escrow — E2E Test (Security & Recovery)       ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌─ [1/10] Seller creates deal (random amount)
+└─ PASS [0s]
+
+┌─ [2/10] Buyer joins deal
+└─ PASS [14ms]
+
+┌─ [3/10] Fund escrow via LN
+└─ PASS [1.12s]
+
+┌─ [4/10] Verify escrow VTXO on-chain
+└─ PASS [16ms]
+
+┌─ [5/10] REJECT: buyer refund before CSV timeout
+└─ PASS [18ms]
+
+┌─ [6/10] Export buyer recovery kit
+└─ PASS [0s]
+
+┌─ [7/10] DELETE all service state
+└─ PASS [0s]
+
+┌─ [8/10] Mine blocks past CSV timeout
+└─ PASS [65ms]
+
+┌─ [9/10] RECOVER: buyer claims from recovery kit only
+└─ PASS [37ms]
+
+┌─ [10/10] Verify recovery destination received funds
+└─ PASS [0s]
+
+
+RESULT: 10/10 passed ✓
+
+╔══════════════════════════════════════════════════════════════╗
+║  Liquid Ark Escrow — E2E Test (Seller Recovery, no service) ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌─ [1/8] Seller creates deal (random amount)
+└─ PASS [0s]
+
+┌─ [2/8] Buyer joins deal
+└─ PASS [6ms]
+
+┌─ [3/8] Fund escrow via LN
+└─ PASS [1.126s]
+
+┌─ [4/8] Verify escrow VTXO on-chain
+└─ PASS [19ms]
+
+┌─ [5/8] Export seller recovery kit + save buyer secret
+└─ PASS [0s]
+
+┌─ [6/8] DELETE all service state
+└─ PASS [0s]
+
+┌─ [7/8] RECOVER: seller claims via release leaf (no service)
+└─ PASS [50ms]
+
+┌─ [8/8] Verify recovery destination received funds
+└─ PASS [1ms]
+
+
+RESULT: 8/8 passed ✓ (seller recovery)
+
+╔══════════════════════════════════════════════════════════════╗
+║      Liquid Ark Escrow — E2E Test (Dispute Path)           ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌─ [1/7] Seller creates deal (random amount)
+└─ PASS [0s]
+
+┌─ [2/7] Buyer joins deal
+└─ PASS [21ms]
+
+┌─ [3/7] Fund escrow via LN
+└─ PASS [1.121s]
+
+┌─ [4/7] Verify escrow VTXO on-chain
+└─ PASS [16ms]
+
+┌─ [5/7] Dispute: oracle rules for SELLER (leaf 2)
+└─ PASS [238ms]
+
+┌─ [6/7] Verify seller received LN payout
+└─ PASS [55ms]
+
+┌─ [7/7] Verify deal state is DISPUTED
+└─ PASS [0s]
+
+
+RESULT: 7/7 passed ✓ (dispute → seller)
+
+┌─ [1/7] Seller creates deal (random amount)
+└─ PASS [0s]
+
+┌─ [2/7] Buyer joins deal
+└─ PASS [0s]
+
+┌─ [3/7] Fund escrow via LN
+└─ PASS [1.086s]
+
+┌─ [4/7] Verify escrow VTXO on-chain
+└─ PASS [17ms]
+
+┌─ [5/7] Dispute: oracle rules for BUYER (leaf 3)
+└─ PASS [439ms]
+
+┌─ [6/7] Verify buyer received LN refund
+└─ PASS [57ms]
+
+┌─ [7/7] Verify deal state is DISPUTED
+└─ PASS [0s]
+
+
+RESULT: 7/7 passed ✓ (dispute → buyer)
