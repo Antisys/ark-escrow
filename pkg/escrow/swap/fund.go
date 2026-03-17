@@ -47,10 +47,6 @@ type FundResult struct {
 	HTLCTxID string
 	// The HTLC vout
 	HTLCVout uint32
-	// The escrow funding txid on Liquid
-	EscrowTxID string
-	// The escrow funding vout on Liquid
-	EscrowVout uint32
 	// The Liquid HTLC script (for recovery)
 	HTLC *HTLCScript
 }
@@ -76,6 +72,9 @@ func Fund(ctx context.Context, cfg FundConfig) (*FundResult, error) {
 	if cfg.EscrowAddress == "" {
 		return nil, fmt.Errorf("escrow address is required")
 	}
+	if cfg.ServicePubKey == nil || cfg.ServicePrivKey == nil {
+		return nil, fmt.Errorf("service keypair is required for atomic HTLC swap")
+	}
 	if cfg.AmountSats == 0 {
 		return nil, fmt.Errorf("amount must be positive")
 	}
@@ -99,12 +98,7 @@ func Fund(ctx context.Context, cfg FundConfig) (*FundResult, error) {
 	}
 	hash := sha256.Sum256(preimage)
 
-	// If service keys are provided, use the full HTLC intermediary flow.
-	// Otherwise, fall back to direct funding (simplified PoC mode).
-	if cfg.ServicePubKey != nil && cfg.ServicePrivKey != nil {
-		return fundWithHTLC(ctx, cfg, preimage, hash)
-	}
-	return fundDirect(ctx, cfg, preimage, hash)
+	return fundWithHTLC(ctx, cfg, preimage, hash)
 }
 
 // fundWithHTLC implements the full atomic swap with a Liquid HTLC intermediary.
@@ -188,39 +182,6 @@ func ClaimHTLCToEscrow(
 	}
 
 	return txid, nil
-}
-
-// fundDirect implements the simplified regtest flow: send L-BTC directly to escrow address.
-// WARNING: This is NOT atomic — the service fronts L-BTC before the buyer pays the LN invoice.
-// Use fundWithHTLC for production (requires ServicePubKey and ServicePrivKey).
-func fundDirect(ctx context.Context, cfg FundConfig, preimage []byte, hash [32]byte) (*FundResult, error) {
-	// Step 2: Send L-BTC directly to escrow address
-	fundTxID, err := cfg.Elementsd.SendToAddress(ctx, cfg.EscrowAddress, cfg.AmountSats)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fund escrow address: %w", err)
-	}
-
-	// Find the actual vout (sendtoaddress does not guarantee vout=0)
-	vout, err := FindVoutByAddress(ctx, cfg.Elementsd, fundTxID, cfg.EscrowAddress)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find escrow vout in tx %s: %w", fundTxID, err)
-	}
-
-	// Step 3: Create HODL invoice on LND
-	memo := fmt.Sprintf("escrow-fund-%s", hex.EncodeToString(hash[:8]))
-	payreq, err := cfg.LND.AddHoldInvoice(ctx, hash[:], int64(cfg.AmountSats), memo, cfg.InvoiceExpiry)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create HODL invoice (L-BTC sent to %s in tx %s): %w",
-			cfg.EscrowAddress, fundTxID, err)
-	}
-
-	return &FundResult{
-		PaymentRequest: payreq,
-		Preimage:       preimage,
-		PaymentHash:    hash[:],
-		EscrowTxID:     fundTxID,
-		EscrowVout:     vout,
-	}, nil
 }
 
 // WaitForPaymentAndSettle waits for the HODL invoice to be held, then settles it.
