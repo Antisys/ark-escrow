@@ -1,0 +1,7 @@
+escrow
+escrow-test
+*.exe
+*.out
+*.test
+.idea/
+.vscode/
