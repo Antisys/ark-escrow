@@ -2,7 +2,6 @@ package store
 
 import (
 	"crypto/rand"
-	"os"
 	"testing"
 	"time"
 
@@ -234,6 +233,3 @@ func TestScriptRoundtripThroughDB(t *testing.T) {
 		t.Fatalf("script roundtrip changed address:\n  orig: %s\n  got:  %s", origAddr, gotAddr)
 	}
 }
-
-// Suppress unused import warning
-var _ = os.TempDir

@@ -1,7 +1,6 @@
 package escrow
 
 import (
-	"crypto/rand"
 	"testing"
 
 	arklib "github.com/arkade-os/arkd/pkg/ark-lib"
@@ -201,6 +200,3 @@ func TestEncodeDecodeTapscripts(t *testing.T) {
 		t.Fatalf("roundtrip address mismatch:\n  orig:    %s\n  decoded: %s", origAddr, decodedAddr)
 	}
 }
-
-// Suppress unused import warning for crypto/rand
-var _ = rand.Reader
