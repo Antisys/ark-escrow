@@ -175,7 +175,12 @@ func joinAction(c *cli.Context) error {
 
 var fundCmd = &cli.Command{
 	Name:  "fund",
-	Usage: "Fund the escrow via Lightning (buyer)",
+	Usage: "Fund the escrow via atomic LN-to-Liquid swap",
+	Description: `Locks L-BTC in a Liquid HTLC, creates a HODL invoice for the buyer to pay,
+then claims the HTLC into the escrow address once the buyer's LN payment arrives.
+
+The swap is atomic: if the buyer never pays, the HTLC times out and L-BTC is reclaimed.
+No party has custody of funds at any point.`,
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "deal", Required: true, Usage: "Deal ID"},
 	},
@@ -203,40 +208,56 @@ func fundAction(c *cli.Context) error {
 		return err
 	}
 
+	// Generate a service keypair for this swap. The service key is used to:
+	// 1. Lock L-BTC in the Liquid HTLC (receiver side)
+	// 2. Claim the HTLC into the escrow address (with preimage)
+	// 3. Reclaim L-BTC if the swap fails (timeout refund)
+	serviceKey, err := btcec.NewPrivateKey()
+	if err != nil {
+		return fmt.Errorf("failed to generate service key: %w", err)
+	}
+
 	ctx := context.Background()
 	result, err := swap.Fund(ctx, swap.FundConfig{
-		LND:           lnd,
-		Elementsd:     elementsd,
-		EscrowAddress: deal.EscrowAddress,
-		AmountSats:    deal.Amount,
+		LND:            lnd,
+		Elementsd:      elementsd,
+		EscrowAddress:  deal.EscrowAddress,
+		AmountSats:     deal.Amount,
+		ServicePubKey:  serviceKey.PubKey(),
+		ServicePrivKey: serviceKey,
 	})
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("HTLC locked: %s (L-BTC locked in hash-time-locked contract)\n", result.HTLCTxID)
 	fmt.Printf("HODL invoice: %s\n", result.PaymentRequest)
-	fmt.Printf("Waiting for payment...\n")
+	fmt.Printf("Waiting for buyer's LN payment...\n")
 
-	// Wait for payment and settle
-	err = swap.WaitForPaymentAndSettle(ctx, lnd, result.PaymentHash, result.Preimage, 2*time.Second)
+	// Wait for buyer's LN payment, claim HTLC → escrow, settle invoice.
+	// This is atomic: HTLC claim and invoice settlement are linked by the same preimage.
+	escrowTxID, err := swap.WaitForPaymentClaimAndSettle(
+		ctx, lnd, elementsd, result,
+		serviceKey, deal.EscrowAddress, deal.Amount, nil, 2*time.Second,
+	)
 	if err != nil {
-		return fmt.Errorf("payment settlement failed: %w", err)
+		return fmt.Errorf("atomic swap failed: %w", err)
 	}
 
-	fundTxID := result.EscrowTxID
-	fundVout := result.EscrowVout
-	if fundTxID == "" {
-		fundTxID = result.HTLCTxID
-		fundVout = result.HTLCVout
+	// Find the escrow vout
+	escrowVout, err := swap.FindVoutByAddress(ctx, elementsd, escrowTxID, deal.EscrowAddress)
+	if err != nil {
+		return fmt.Errorf("escrow funded (tx %s) but could not find vout: %w", escrowTxID, err)
 	}
-	if err := deal.Fund(fundTxID, fundVout); err != nil {
+
+	if err := deal.Fund(escrowTxID, escrowVout); err != nil {
 		return err
 	}
 	if err := store.Save(deal); err != nil {
 		return err
 	}
 
-	fmt.Printf("Deal funded! TxID: %s\n", fundTxID)
+	fmt.Printf("Deal funded! Escrow TxID: %s\n", escrowTxID)
 
 	// Print updated recovery kit with funding outpoint
 	kit, err := escrow.RecoveryKitForBuyer(deal)

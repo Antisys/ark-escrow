@@ -48,6 +48,7 @@ type testState struct {
 	oracleKey    *btcec.PrivateKey
 	sellerKey    *btcec.PrivateKey
 	buyerKey     *btcec.PrivateKey
+	serviceKey   *btcec.PrivateKey
 	secret       [escrow.SecretSize]byte
 	secretHash   [32]byte
 	deal         *escrow.Deal
@@ -669,6 +670,12 @@ func stepInit(ctx context.Context, state *testState) error {
 	}
 	logf("Oracle pubkey: %s", hex.EncodeToString(schnorr.SerializePubKey(state.oracleKey.PubKey())))
 
+	state.serviceKey, err = btcec.NewPrivateKey()
+	if err != nil {
+		return err
+	}
+	logf("Service key:   %s (for atomic HTLC swap)", hex.EncodeToString(schnorr.SerializePubKey(state.serviceKey.PubKey())))
+
 	return nil
 }
 
@@ -779,27 +786,24 @@ func stepBuyerJoinDeal(ctx context.Context, state *testState) error {
 }
 
 func stepBuyerFund(ctx context.Context, state *testState) error {
-	logf("Generating HODL invoice preimage and hash...")
+	logf("Locking L-BTC in Liquid HTLC (atomic swap)...")
 	result, err := swap.Fund(ctx, swap.FundConfig{
-		LND:           state.lnd,
-		Elementsd:     state.elementsd,
-		EscrowAddress: state.escrowAddr,
-		AmountSats:    state.deal.Amount,
+		LND:            state.lnd,
+		Elementsd:      state.elementsd,
+		EscrowAddress:  state.escrowAddr,
+		AmountSats:     state.deal.Amount,
+		ServicePubKey:  state.serviceKey.PubKey(),
+		ServicePrivKey: state.serviceKey,
 	})
 	if err != nil {
 		return err
 	}
 	state.fundResult = result
 
+	logf("HTLC locked:    %s:%d", result.HTLCTxID, result.HTLCVout)
 	logf("Preimage:       %s", hex.EncodeToString(result.Preimage))
 	logf("Payment hash:   %s", hex.EncodeToString(result.PaymentHash))
 	logf("HODL invoice:   %s...%s", result.PaymentRequest[:30], result.PaymentRequest[len(result.PaymentRequest)-10:])
-
-	fundTxID := result.EscrowTxID
-	if fundTxID == "" {
-		fundTxID = result.HTLCTxID
-	}
-	logf("L-BTC sent to escrow address, txid: %s", fundTxID)
 
 	logf("Buyer's CLN paying HODL invoice...")
 	payErrCh := make(chan error, 1)
@@ -810,11 +814,15 @@ func stepBuyerFund(ctx context.Context, state *testState) error {
 		payErrCh <- err
 	}()
 
-	logf("Waiting for LND to detect held payment...")
-	err = swap.WaitForPaymentAndSettle(ctx, state.lnd, result.PaymentHash, result.Preimage, time.Second)
+	logf("Waiting for LND to detect held payment, then claiming HTLC → escrow...")
+	escrowTxID, err := swap.WaitForPaymentClaimAndSettle(
+		ctx, state.lnd, state.elementsd, result,
+		state.serviceKey, state.escrowAddr, state.deal.Amount, nil, time.Second,
+	)
 	if err != nil {
-		return fmt.Errorf("settle failed: %w", err)
+		return fmt.Errorf("atomic swap failed: %w", err)
 	}
+	logf("HTLC claimed → escrow: %s", escrowTxID)
 	logf("HODL invoice settled — preimage revealed, buyer's LN payment complete")
 
 	// Wait for the CLN payment goroutine to finish and check for errors
@@ -823,11 +831,11 @@ func stepBuyerFund(ctx context.Context, state *testState) error {
 	}
 
 	// Find the actual vout for the escrow output
-	vout := result.EscrowVout
-	if result.EscrowTxID == "" {
-		vout = result.HTLCVout
+	vout, err := swap.FindVoutByAddress(ctx, state.elementsd, escrowTxID, state.escrowAddr)
+	if err != nil {
+		return fmt.Errorf("escrow funded (tx %s) but could not find vout: %w", escrowTxID, err)
 	}
-	if err := state.deal.Fund(fundTxID, vout); err != nil {
+	if err := state.deal.Fund(escrowTxID, vout); err != nil {
 		return err
 	}
 
