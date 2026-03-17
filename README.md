@@ -37,6 +37,10 @@ See [PROTOCOL.md](PROTOCOL.md) for the full protocol specification.
 
 ## Verify It Works
 
+### Just want to read? No setup needed
+
+The full output of a passing E2E run is in [E2E_TEST_OUTPUT.txt](E2E_TEST_OUTPUT.txt) — 50 steps across 6 scenarios with real Liquid transactions and Lightning payments. You can review exactly what each step does without installing anything.
+
 ### Unit tests (no Docker, no infrastructure — just Go)
 
 ```bash
@@ -60,8 +64,6 @@ make e2e
 ```
 
 50 steps across 6 scenarios — release, refund, buyer recovery, seller recovery, dispute (seller wins), dispute (buyer wins). Plus a security test proving the buyer cannot claim before the CSV timeout. Takes about 2 minutes.
-
-The full output of a passing run is in [E2E_TEST_OUTPUT.txt](E2E_TEST_OUTPUT.txt) — you can read through it without running anything to see exactly what each step does.
 
 ### Don't want to install Go?
 
