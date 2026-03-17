@@ -35,56 +35,39 @@ The buyer funds the escrow by paying a Lightning invoice. No need to hold L-BTC 
 
 See [PROTOCOL.md](PROTOCOL.md) for the full protocol specification.
 
-## Quick Start (regtest)
+## Verify It Works
 
-### Prerequisites
+### Unit tests (no Docker, no infrastructure — just Go)
 
-- [Go](https://go.dev/dl/) 1.22+
-- [Docker](https://docs.docker.com/get-docker/)
-- [Nigiri](https://github.com/vulpemventures/nigiri) — sets up a complete Bitcoin + Liquid + Lightning regtest environment in one command
-
-Install Nigiri:
 ```bash
+git clone https://github.com/Antisys/ark-escrow.git && cd ark-escrow
+make test
+```
+
+65 tests pass in under 2 seconds. Includes randomized property-based tests with random keys, amounts (10k–200k sats), and timeouts (10–200 blocks) on every run. Tests cover all 4 tapscript claim paths, recovery kit encoding/decoding, key derivation, and HTLC construction.
+
+### E2E tests (requires Docker)
+
+Runs all 6 escrow scenarios on a real Liquid regtest with LND and CLN lightning nodes:
+
+```bash
+# Install Nigiri (one-time)
 curl https://getnigiri.vulpemventures.com | bash
-```
 
-### Setup
-
-```bash
-# Start the regtest environment (Bitcoin + Liquid + LND + CLN)
+# Start regtest environment + run tests
 nigiri start --liquid
-
-# Clone and build
-git clone https://github.com/Antisys/ark-escrow.git
-cd ark-escrow
-go build -o escrow ./cmd/escrow
+make e2e
 ```
 
-### Run the E2E Tests
+50 steps across 6 scenarios — release, refund, buyer recovery, seller recovery, dispute (seller wins), dispute (buyer wins). Plus a security test proving the buyer cannot claim before the CSV timeout. Takes about 2 minutes.
 
-The E2E test suite runs all 6 escrow scenarios end-to-end on Liquid regtest with real Lightning nodes:
+The full output of a passing run is in [E2E_TEST_OUTPUT.txt](E2E_TEST_OUTPUT.txt) — you can read through it without running anything to see exactly what each step does.
+
+### Don't want to install Go?
 
 ```bash
-./scripts/run-e2e.sh
+docker run --rm -v "$PWD":/app -w /app golang:1.25 go test ./pkg/escrow/... -count=1 -v
 ```
-
-This automatically detects the running Nigiri environment, extracts the LND macaroon, and executes the full test suite. No manual configuration needed.
-
-For verbose output showing the protocol details (tapscript construction, witness assembly, on-chain claims):
-
-```bash
-./scripts/run-e2e.sh -v
-```
-
-### Run the Unit Tests
-
-No infrastructure needed — these run anywhere with Go installed:
-
-```bash
-go test ./pkg/escrow/... -v
-```
-
-65 tests including randomized property-based tests with random keys, amounts (10k–200k sats), and timeouts (10–200 blocks) on every run.
 
 ### CLI Usage
 
