@@ -70,10 +70,6 @@ func (c *elementsdRPC) call(ctx context.Context, method string, params ...interf
 	return c.callURL(ctx, c.walletURL, method, params...)
 }
 
-func (c *elementsdRPC) callBase(ctx context.Context, method string, params ...interface{}) (json.RawMessage, error) {
-	return c.callURL(ctx, c.url, method, params...)
-}
-
 func (c *elementsdRPC) callURL(ctx context.Context, rpcURL, method string, params ...interface{}) (json.RawMessage, error) {
 	if params == nil {
 		params = []interface{}{}

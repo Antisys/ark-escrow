@@ -2,7 +2,6 @@ package swap
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
@@ -224,35 +223,6 @@ func SpendHTLC(ctx context.Context, elementsd *ElementsdClient, cfg SpendHTLCCon
 	}
 
 	return extractAndBroadcast(ctx, elementsd, p)
-}
-
-// FindHTLCVout searches a transaction's outputs for the one matching the given P2TR script.
-func FindHTLCVout(ctx context.Context, elementsd *ElementsdClient, txid string, htlcScript []byte) (uint32, error) {
-	raw, err := elementsd.GetRawTransaction(ctx, txid, true)
-	if err != nil {
-		return 0, err
-	}
-
-	var tx struct {
-		Vout []struct {
-			N            uint32 `json:"n"`
-			ScriptPubKey struct {
-				Hex string `json:"hex"`
-			} `json:"scriptPubKey"`
-		} `json:"vout"`
-	}
-	if err := json.Unmarshal(raw, &tx); err != nil {
-		return 0, fmt.Errorf("failed to parse transaction: %w", err)
-	}
-
-	targetHex := hex.EncodeToString(htlcScript)
-	for _, vout := range tx.Vout {
-		if vout.ScriptPubKey.Hex == targetHex {
-			return vout.N, nil
-		}
-	}
-
-	return 0, fmt.Errorf("output not found in transaction %s", txid)
 }
 
 // FindVoutByAddress searches a transaction's outputs for the one matching the given address.

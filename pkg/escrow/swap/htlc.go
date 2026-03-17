@@ -20,21 +20,6 @@ func NewElementsdClient(elementsdURL string) (*ElementsdClient, error) {
 	return &ElementsdClient{rpc: rpc}, nil
 }
 
-// HTLC represents a Liquid HTLC (hash-time-locked contract).
-// Used for atomic swaps between LN and Liquid.
-type HTLC struct {
-	// The HTLC address (P2WSH on Liquid)
-	Address string `json:"address"`
-	// The redeem script hex
-	RedeemScript string `json:"redeem_script"`
-	// Funding txid after broadcast
-	TxID string `json:"txid,omitempty"`
-	// Funding vout
-	Vout uint32 `json:"vout,omitempty"`
-	// Amount in sats
-	Amount uint64 `json:"amount"`
-}
-
 // SendToAddress sends L-BTC to an address. amountSats is the amount in satoshis. Returns txid.
 func (c *ElementsdClient) SendToAddress(ctx context.Context, address string, amountSats uint64) (string, error) {
 	// Format as string with 8 decimal places to avoid float64 precision loss.

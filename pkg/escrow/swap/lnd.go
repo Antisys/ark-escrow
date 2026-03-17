@@ -118,29 +118,7 @@ func (c *LNDClient) SettleInvoice(ctx context.Context, preimage []byte) error {
 	return nil
 }
 
-// CancelInvoice cancels a HODL invoice.
-func (c *LNDClient) CancelInvoice(ctx context.Context, paymentHash []byte) error {
-	req := map[string]string{
-		"payment_hash": base64.StdEncoding.EncodeToString(paymentHash),
-	}
-	_, err := c.do(ctx, http.MethodPost, "/v2/invoices/cancel", req)
-	if err != nil {
-		return fmt.Errorf("failed to cancel invoice: %w", err)
-	}
-	return nil
-}
-
-// InvoiceState represents the state of an LND invoice.
-type InvoiceState int
-
-const (
-	InvoiceStateOpen     InvoiceState = 0
-	InvoiceStateSettled  InvoiceState = 1
-	InvoiceStateCanceled InvoiceState = 2
-	InvoiceStateAccepted InvoiceState = 3 // held (HODL)
-)
-
-// LookupInvoice looks up an invoice by its payment hash.
+// LookupInvoiceResponse is the response from LookupInvoice.
 type LookupInvoiceResponse struct {
 	State       string `json:"state"`
 	AmtPaidSat  string `json:"amt_paid_sat"`
@@ -239,12 +217,3 @@ func (c *LNDClient) GetInfo(ctx context.Context) (json.RawMessage, error) {
 	return c.do(ctx, http.MethodGet, "/v1/getinfo", nil)
 }
 
-// WalletBalance returns the on-chain wallet balance.
-func (c *LNDClient) WalletBalance(ctx context.Context) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodGet, "/v1/balance/blockchain", nil)
-}
-
-// ChannelBalance returns the Lightning channel balance.
-func (c *LNDClient) ChannelBalance(ctx context.Context) (json.RawMessage, error) {
-	return c.do(ctx, http.MethodGet, "/v1/balance/channels", nil)
-}

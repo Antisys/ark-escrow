@@ -100,3 +100,30 @@ func EvaluateScriptToBool(script []byte, witness wire.TxWitness) (bool, error) {
 
 	return true, nil
 }
+
+// DecodeClosure attempts to decode a script into a known closure type.
+func DecodeClosure(script []byte) (Closure, error) {
+	if len(script) == 0 {
+		return nil, fmt.Errorf("cannot decode empty script")
+	}
+
+	types := []Closure{
+		&CSVMultisigClosure{},
+		&MultisigClosure{},
+		&ConditionMultisigClosure{},
+	}
+
+	for _, c := range types {
+		scriptCopy := make([]byte, len(script))
+		copy(scriptCopy, script)
+		valid, err := c.Decode(scriptCopy)
+		if err != nil {
+			continue
+		}
+		if valid {
+			return c, nil
+		}
+	}
+
+	return nil, fmt.Errorf("script does not match any known closure type: %x", script)
+}
