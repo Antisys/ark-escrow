@@ -160,4 +160,4 @@ Additionally, the security test verifies that a buyer **cannot** claim funds bef
 
 ## License
 
-MIT
+[GNU General Public License v3.0](LICENSE)
