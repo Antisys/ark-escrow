@@ -2,7 +2,15 @@
 
 Non-custodial escrow on Liquid Network with Lightning Network funding.
 
-Locks L-BTC in a 4-leaf taproot script: release (seller + preimage), timeout refund (buyer + CSV), and two dispute paths (oracle + party). Both buyer and seller can recover funds independently using recovery kits, even if the escrow service disappears.
+## Why This Exists
+
+People under financial repression need to trade without intermediaries that can be seized, censored, or coerced. Every custodial escrow service is a single point of failure — governments can shut it down, freeze funds, or compel the operator to steal from users.
+
+This project replaces the custodian with **Bitcoin script**. Funds are locked in a taproot output on the Liquid sidechain with four spending conditions enforced by consensus, not trust. Both buyer and seller can recover their funds independently — even if the escrow service disappears completely. No federation to compromise. No custodian to subpoena. Just cryptographic guarantees.
+
+## How It Works
+
+Funds are locked in a **4-leaf taproot script** on Liquid. Each leaf is a different spending condition:
 
 ```
 Buyer (Lightning)              Liquid Network                    Seller
@@ -17,6 +25,14 @@ Buyer (Lightning)              Liquid Network                    Seller
      |  <-- Leaf 3: oracle + buyer sig                             |  (dispute)
 ```
 
+- **Release**: buyer confirms delivery by revealing a secret, seller claims payment
+- **Timeout refund**: seller never ships, buyer reclaims after a time delay
+- **Dispute**: an independent oracle resolves disagreements (cannot act alone — always needs the winning party's signature)
+
+The buyer funds the escrow by paying a Lightning invoice. No need to hold L-BTC directly.
+
+**Self-custody guarantee**: both parties receive a recovery kit — a compact blob containing their private key and all escrow parameters. With just this kit and an elementsd node, they can reconstruct the tapscript tree and claim their funds on-chain. No service, no internet connection to the escrow operator, no Lightning channel required.
+
 See [PROTOCOL.md](PROTOCOL.md) for the full protocol specification.
 
 ## Quick Start (regtest)
@@ -24,12 +40,18 @@ See [PROTOCOL.md](PROTOCOL.md) for the full protocol specification.
 ### Prerequisites
 
 - [Go](https://go.dev/dl/) 1.22+
-- [Nigiri](https://github.com/vulpemventures/nigiri) (provides elementsd, LND, CLN on regtest)
+- [Docker](https://docs.docker.com/get-docker/)
+- [Nigiri](https://github.com/vulpemventures/nigiri) — sets up a complete Bitcoin + Liquid + Lightning regtest environment in one command
+
+Install Nigiri:
+```bash
+curl https://getnigiri.vulpemventures.com | bash
+```
 
 ### Setup
 
 ```bash
-# Start the regtest environment
+# Start the regtest environment (Bitcoin + Liquid + LND + CLN)
 nigiri start --liquid
 
 # Clone and build
@@ -38,7 +60,33 @@ cd ark-escrow
 go build -o escrow ./cmd/escrow
 ```
 
-### Usage
+### Run the E2E Tests
+
+The E2E test suite runs all 6 escrow scenarios end-to-end on Liquid regtest with real Lightning nodes:
+
+```bash
+./scripts/run-e2e.sh
+```
+
+This automatically detects the running Nigiri environment, extracts the LND macaroon, and executes the full test suite. No manual configuration needed.
+
+For verbose output showing the protocol details (tapscript construction, witness assembly, on-chain claims):
+
+```bash
+./scripts/run-e2e.sh -v
+```
+
+### Run the Unit Tests
+
+No infrastructure needed — these run anywhere with Go installed:
+
+```bash
+go test ./pkg/escrow/... -v
+```
+
+65 tests including randomized property-based tests with random keys, amounts (10k–200k sats), and timeouts (10–200 blocks) on every run.
+
+### CLI Usage
 
 ```bash
 # Seller creates a deal
@@ -75,6 +123,19 @@ go build -o escrow ./cmd/escrow
 | `recoverykit` | Export recovery kit |
 | `recover` | Claim from recovery kit without service |
 
+## E2E Test Scenarios
+
+| Scenario | What it tests |
+|----------|---------------|
+| Release | Happy path: fund, ship, release to seller via LN |
+| Refund | Timeout: fund, mine past CSV, refund to buyer via LN |
+| Buyer recovery | Service disappears, buyer claims with recovery kit only |
+| Seller recovery | Service disappears, seller claims with kit + buyer's secret |
+| Dispute (seller wins) | Oracle + seller claim via dispute leaf |
+| Dispute (buyer wins) | Oracle + buyer claim via dispute leaf |
+
+Additionally, the security test verifies that a buyer **cannot** claim funds before the CSV timeout expires — proving the escrow actually protects the seller during the deal.
+
 ## Configuration
 
 | Flag | Env | Default |
@@ -86,31 +147,16 @@ go build -o escrow ./cmd/escrow
 | `--oracle-pubkey` | `ESCROW_ORACLE_PUBKEY` | -- |
 | `--network-hrp` | `ESCROW_NETWORK_HRP` | `ert` |
 
-## Tests
+## Security Properties
 
-```bash
-# Unit + property-based tests (35+ tests, randomized)
-go test ./pkg/escrow/... -v
-
-# E2E tests (requires nigiri running with --liquid)
-./scripts/run-e2e.sh
-
-# E2E with verbose output (shows protocol details)
-./scripts/run-e2e.sh -v
-```
-
-The E2E test suite runs 6 scenarios end-to-end on Liquid regtest:
-
-| Scenario | What it tests |
-|----------|---------------|
-| Release | Happy path: fund, ship, release to seller via LN |
-| Refund | Timeout: fund, mine past CSV, refund to buyer via LN |
-| Buyer recovery | Service disappears, buyer claims with recovery kit only |
-| Seller recovery | Service disappears, seller claims with kit + buyer's secret |
-| Dispute (seller wins) | Oracle + seller claim via dispute leaf |
-| Dispute (buyer wins) | Oracle + buyer claim via dispute leaf |
-
-All amounts and timeouts are randomized on each run.
+| Property | How it works |
+|----------|-------------|
+| **No custodian** | Funds locked in taproot script, not held by any party |
+| **Buyer protection** | Automatic refund after timeout, no seller cooperation needed |
+| **Seller protection** | Funds locked for the deal duration, buyer cannot reclaim early |
+| **Censorship resistant** | Recovery kits allow claiming without the service or internet |
+| **Oracle limited** | Oracle cannot claim alone — always needs the winning party's signature |
+| **Verifiable on-chain** | Escrow address is deterministic — anyone can verify the script |
 
 ## License
 
