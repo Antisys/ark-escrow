@@ -184,47 +184,6 @@ func ClaimHTLCToEscrow(
 	return txid, nil
 }
 
-// WaitForPaymentAndSettle waits for the HODL invoice to be held, then settles it.
-// This should be called after the buyer pays the invoice.
-func WaitForPaymentAndSettle(ctx context.Context, lnd *LNDClient, paymentHash, preimage []byte, pollInterval time.Duration) error {
-	if pollInterval == 0 {
-		pollInterval = 2 * time.Second
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		inv, err := lnd.LookupInvoice(ctx, paymentHash)
-		if err != nil {
-			return fmt.Errorf("failed to lookup invoice: %w", err)
-		}
-
-		switch inv.State {
-		case "ACCEPTED":
-			// Payment is held — settle it
-			if err := lnd.SettleInvoice(ctx, preimage); err != nil {
-				return fmt.Errorf("failed to settle invoice: %w", err)
-			}
-			return nil
-		case "SETTLED":
-			// Already settled
-			return nil
-		case "CANCELED":
-			return fmt.Errorf("invoice was canceled")
-		case "OPEN":
-			// Still waiting for payment
-			time.Sleep(pollInterval)
-			continue
-		default:
-			return fmt.Errorf("unexpected invoice state: %s", inv.State)
-		}
-	}
-}
-
 // WaitForPaymentClaimAndSettle is the full HTLC flow: wait for payment, claim HTLC to escrow, settle invoice.
 func WaitForPaymentClaimAndSettle(
 	ctx context.Context,

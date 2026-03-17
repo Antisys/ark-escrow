@@ -106,32 +106,9 @@ CREATED ──→ JOINED ──→ FUNDED ──→ SHIPPED ──→ RELEASED
 
 The buyer pays Lightning; the service deposits L-BTC into the escrow. This is an atomic swap using HODL invoices.
 
-### Simplified Flow (PoC)
+### Atomic HTLC Swap
 
-```
-Buyer (CLN)              Service (LND + elementsd)              Liquid
-    │                           │                                  │
-    │                     1. Generate preimage P                   │
-    │                        H = SHA256(P)                         │
-    │                           │                                  │
-    │                     2. Send L-BTC to escrow address ────────→│
-    │                           │                                  │
-    │                     3. Create HODL invoice (hash=H)          │
-    │                           │                                  │
-    │←── 4. Return invoice ─────│                                  │
-    │                           │                                  │
-    │── 5. Pay invoice ────────→│ (LND holds HTLC)                │
-    │                           │                                  │
-    │                     6. Detect ACCEPTED state                 │
-    │                     7. Settle invoice (reveal P)             │
-    │                           │                                  │
-    │←── 8. Payment complete ───│                                  │
-    │                           │                     Escrow VTXO  │
-```
-
-### Full Flow (with Liquid HTLC intermediary)
-
-For production, the service first locks L-BTC in an intermediate HTLC on Liquid (claimable with preimage, refundable on timeout). This ensures atomicity: if the service crashes between steps, no funds are lost.
+The service locks L-BTC in an intermediate HTLC on Liquid (claimable with preimage, refundable on timeout). This ensures atomicity: if the service crashes between steps, no funds are lost.
 
 ```
 1. Service generates preimage P, hash H = SHA256(P)
