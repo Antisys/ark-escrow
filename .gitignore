@@ -1,5 +1,5 @@
-escrow
-escrow-test
+/escrow
+/escrow-test
 *.exe
 *.out
 *.test

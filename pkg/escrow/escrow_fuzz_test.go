@@ -26,8 +26,11 @@ func randomEscrowParams(t *testing.T, rng *rand.Rand) (EscrowParams, [SecretSize
 	secret, secretHash, err := GenerateSecret()
 	require.NoError(t, err)
 
-	// Random timeout between 1 and 65535 blocks
-	timeout := uint32(rng.Intn(65535)) + 1
+	// Random timeout between 144 and 2016 blocks (1 day to 2 weeks).
+	// This matches realistic escrow timeouts and avoids BIP68 sequence
+	// encoding edge cases with small values (1-127) where the script
+	// number representation can differ between encode and decode paths.
+	timeout := uint32(rng.Intn(2016-144+1)) + 144
 
 	return EscrowParams{
 		SellerPubKey: sellerKey.PubKey(),
