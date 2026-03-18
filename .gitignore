@@ -1,5 +1,6 @@
 /escrow
 /escrow-test
+GRANT_APPLICATION*.md
 *.exe
 *.out
 *.test
