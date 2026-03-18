@@ -15,7 +15,7 @@ No party has unilateral custody of the funds. Both buyer and seller can recover 
 | **Buyer** | Purchases goods/services. Funds the escrow via Lightning. Generates a secret used for release. |
 | **Seller** | Offers goods/services. Creates the deal. Claims funds via the release leaf when buyer releases. |
 | **Oracle** | Trusted third party for dispute resolution only. Has no access to funds without cooperation from buyer or seller. |
-| **Service** | Operates the escrow infrastructure (LND node, elementsd, deal storage). Facilitates the LN-to-Liquid atomic swap. Not custodial — both parties can bypass the service via recovery kits. |
+| **Service** | Operates the escrow infrastructure (LND node, elementsd, deal storage). Executes the LN-to-Liquid atomic swap. Not custodial — both parties can bypass the service via recovery kits. |
 
 ## Escrow Script
 
@@ -250,7 +250,7 @@ The witness pushes items onto the stack in order, so the first item (`seller_sig
 | **Non-custodial** | Neither party, oracle, nor service can unilaterally spend the escrow. |
 | **Self-custody** | Both parties can recover funds using only a recovery kit + elementsd. |
 | **Oracle limited** | Oracle can only resolve disputes, never claim funds alone. Requires cooperation of the winning party. |
-| **Service dispensable** | Service facilitates the LN-Liquid bridge but is not required for on-chain claims or recovery. |
+| **Service dispensable** | Service runs the LN-Liquid bridge but is not required for on-chain claims or recovery. |
 
 ### Attack Vectors
 
@@ -290,7 +290,7 @@ The witness pushes items onto the stack in order, so the first item (`seller_sig
 ## Test Coverage
 
 The implementation includes:
-- **35+ unit tests** with randomized property-based testing (random keys, amounts 10k–200k sats, timeouts 10–200 blocks)
+- **65 unit tests** with randomized property-based testing (random keys, amounts 10k–200k sats, timeouts 144–2016 blocks)
 - **6 E2E test scenarios** on Liquid regtest with real LND and CLN nodes:
   - Release path (happy path)
   - Refund path (CSV timeout)

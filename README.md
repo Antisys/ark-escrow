@@ -48,7 +48,7 @@ git clone https://github.com/Antisys/ark-escrow.git && cd ark-escrow
 make test
 ```
 
-65 tests pass in under 2 seconds. Includes randomized property-based tests with random keys, amounts (10k–200k sats), and timeouts (10–200 blocks) on every run. Tests cover all 4 tapscript claim paths, recovery kit encoding/decoding, key derivation, and HTLC construction.
+65 tests pass in under 2 seconds. Includes randomized property-based tests with random keys, amounts (10k–200k sats), and timeouts (144–2016 blocks) on every run. Tests cover all 4 tapscript claim paths, recovery kit encoding/decoding, key derivation, and HTLC construction.
 
 ### E2E tests (requires Docker)
 
@@ -119,7 +119,7 @@ docker run --rm -v "$PWD":/app -w /app golang:1.25 go test ./pkg/escrow/... -cou
 | Dispute (seller wins) | Oracle + seller claim via dispute leaf |
 | Dispute (buyer wins) | Oracle + buyer claim via dispute leaf |
 
-Additionally, the security test verifies that a buyer **cannot** claim funds before the CSV timeout expires — proving the escrow actually protects the seller during the deal.
+The security test verifies that a buyer **cannot** claim funds before the CSV timeout expires — proving the escrow protects the seller during the deal.
 
 ## Configuration
 
@@ -128,7 +128,7 @@ Additionally, the security test verifies that a buyer **cannot** claim funds bef
 | `--datadir` | `ESCROW_DATADIR` | `~/.ark-escrow/deals` |
 | `--lnd-url` | `ESCROW_LND_URL` | `https://localhost:18080` |
 | `--lnd-macaroon` | `ESCROW_LND_MACAROON` | -- |
-| `--elementsd-url` | `ESCROW_ELEMENTSD_URL` | `http://admin1:123@localhost:18884` |
+| `--elementsd-url` | `ESCROW_ELEMENTSD_URL` | -- |
 | `--oracle-pubkey` | `ESCROW_ORACLE_PUBKEY` | -- |
 | `--network-hrp` | `ESCROW_NETWORK_HRP` | `ert` |
 
