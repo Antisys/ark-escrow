@@ -38,7 +38,7 @@ func main() {
 	}
 
 	if *apiKey == "" {
-		log.Fatal("--api-key or ESCROW_API_KEY is required")
+		log.Println("WARNING: no --api-key set, running without authentication. Do NOT expose this to the internet.")
 	}
 
 	store, err := escrow.NewFileStore(*dataDir)
@@ -80,7 +80,10 @@ func main() {
 	mux.HandleFunc("GET /api/deals/{id}/recoverykit", srv.handleRecoveryKit)
 	mux.HandleFunc("POST /api/recover", srv.handleRecover)
 
-	handler := requireAPIKey(*apiKey, mux)
+	var handler http.Handler = mux
+	if *apiKey != "" {
+		handler = requireAPIKey(*apiKey, mux)
+	}
 
 	if *tlsCert != "" && *tlsKey != "" {
 		fmt.Printf("Escrow API listening on %s (HTTPS)\n", *listenAddr)
